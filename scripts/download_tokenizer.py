@@ -10,9 +10,9 @@ from requests.exceptions import HTTPError
 
 
 def hf_download(
-    repo_id: str, tokenizer_path: str, local_dir: str, hf_token: Optional[str] = None
+    repo_id: str, tokenizer_path: str, local_dir: str, hf_token: Optional[str] = None , model_download:Optional[bool] = None
 ) -> None:
-    from huggingface_hub import hf_hub_download
+    from huggingface_hub import hf_hub_download, HfFileSystem
 
     tokenizer_path = (
         f"{tokenizer_path}/tokenizer.model" if tokenizer_path else "tokenizer.model"
@@ -26,6 +26,21 @@ def hf_download(
             local_dir_use_symlinks=False,
             token=hf_token,
         )
+        if model_download:
+            from huggingface_hub import HfFileSystem
+            fs = HfFileSystem()
+            files = fs.glob(f"{repo_id}/**.safetensors")
+            
+            for f in files:
+                model_file_path = f"{tokenizer_path}/{f.split('/')[-1]}"
+                hf_hub_download(
+                    repo_id=repo_id,
+                    filename=model_file_path,
+                    local_dir=local_dir,
+                    local_dir_use_symlinks=False,
+                    token=hf_token,
+                )
+            
     except HTTPError as e:
         if e.response.status_code == 401:
             print(
@@ -60,6 +75,12 @@ if __name__ == "__main__":
         default="assets/tokenizer/",
         help="local directory to save the tokenizer.model",
     )
+    parser.add_argument(
+        "--model_download",
+        type=bool,
+        default=False,
+        help="local directory to save the **.safetensors",
+    )
 
     args = parser.parse_args()
-    hf_download(args.repo_id, args.tokenizer_path, args.local_dir, args.hf_token)
+    hf_download(args.repo_id, args.tokenizer_path, args.local_dir, args.hf_token, args.model_download)
