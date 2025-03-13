@@ -15,6 +15,7 @@ from torchtitan.protocols.train_spec import register_train_spec, TrainSpec
 from .model import Transformer, TransformerModelArgs
 from .parallelize_llama import parallelize_llama
 from .pipeline_llama import pipeline_llama
+from .load_hf import load_pretrained_llama3
 
 __all__ = [
     "parallelize_llama",
@@ -22,6 +23,7 @@ __all__ = [
     "TransformerModelArgs",
     "Transformer",
     "llama3_configs",
+    "load_pretrained_llama3"
 ]
 
 
@@ -71,5 +73,6 @@ register_train_spec(
         build_dataloader_fn=build_hf_dataloader,
         tokenizer_cls=TikTokenizer,
         loss_fn=cross_entropy_loss,
+        load_pretrained_model=load_pretrained_llama3
     )
 )

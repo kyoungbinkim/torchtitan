@@ -66,7 +66,7 @@ class TrainSpec:
     tokenizer_cls: Type[Tokenizer]
     loss_fn: LossFunction
     build_metrics_processor_fn: Optional[MetricsProcessorBuilder] = None
-
+    load_pretrained_model:Optional[Callable] = None
 
 _train_specs = {}
 

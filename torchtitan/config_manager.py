@@ -218,7 +218,26 @@ class JobConfig:
             converters have been applied.
             """,
         )
-
+        self.parser.add_argument(
+            "--model.enable_finetune",
+            type=bool,
+            default=False,
+            help="",
+        )
+        
+        self.parser.add_argument(
+            "--model.model_path",
+            type=str,
+            default="./assets/tokenizer/original/",
+            help="",
+        )
+        self.parser.add_argument(
+            "--model.model_files",
+            type=list,
+            default=[],
+            help="",
+        )
+        
         # optimizer configs
         self.parser.add_argument(
             "--optimizer.name", type=str, default="AdamW", help="Optimizer to use"
@@ -760,6 +779,7 @@ class JobConfig:
             default=1,
             help="The minimum number of FT replica for each step.",
         )
+    
 
     def to_dict(self):
         return self.args_dict
