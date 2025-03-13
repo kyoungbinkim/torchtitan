@@ -121,9 +121,14 @@ def main(job_config: JobConfig):
     logger.info(
         f"Building {train_spec.name} {job_config.model.flavor} with {model_config}"
     )
-    with torch.device("meta"):
+    with torch.device("cpu"):
         model = model_cls.from_model_args(model_config)
 
+    model = train_spec.load_pretrained_model(
+        model,
+        job_config.model
+    )
+    
     # Build the collection of model converters. No-op if `model.converters` empty
     model_converters = build_model_converters(job_config, parallel_dims)
     model_converters.convert(model)

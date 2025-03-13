@@ -127,8 +127,6 @@ def load_pretrained_llama3(
     del state_dict
     gc.collect()
     
-    #for debug
-    print(f"titan_state : {titan_state.keys()}")
-    
     model.load_state_dict(titan_state, strict=False)
+    
     return model
