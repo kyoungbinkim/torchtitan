@@ -22,7 +22,7 @@ norm_type = "rmsnorm"  # layernorm / np_layernorm / rmsnorm
 tokenizer_path = "./assets/tokenizer/original/tokenizer.model"
 # converters = "float8"
 enable_finetune = true
-model_path = "/data/models--meta-llama--Llama-3.1-8B-Instruct/"
+model_path = "./assets/tokenizer/original/"
 model_files = ['model-00001-of-00004.safetensors', 'model-00002-of-00004.safetensors', 'model-00003-of-00004.safetensors', 'model-00004-of-00004.safetensors']
 
 
