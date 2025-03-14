@@ -28,7 +28,7 @@ def hf_download(
         )
         if model_download:
             from huggingface_hub import HfFileSystem
-            fs = HfFileSystem()
+            fs = HfFileSystem(token=hf_token)
             files = fs.glob(f"{repo_id}/*.safetensors")
             
             for f in files:
