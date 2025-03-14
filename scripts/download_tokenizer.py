@@ -29,10 +29,10 @@ def hf_download(
         if model_download:
             from huggingface_hub import HfFileSystem
             fs = HfFileSystem()
-            files = fs.glob(f"{repo_id}/**.safetensors")
+            files = fs.glob(f"{repo_id}/*.safetensors")
             
             for f in files:
-                model_file_path = f"{tokenizer_path}/{f.split('/')[-1]}"
+                model_file_path = f"{f.split('/')[-1]}"
                 hf_hub_download(
                     repo_id=repo_id,
                     filename=model_file_path,
