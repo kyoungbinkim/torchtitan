@@ -30,6 +30,10 @@ from torchtitan.tools.profiling import (
     maybe_enable_profiling,
 )
 
+os.environ['NCCL_BUFFSIZE'] = '2097152'
+os.environ['NCCL_DEBUG'] = 'INFO'
+os.environ['FI_EFA_SET_CUDA_SYNC_MEMOPS'] = '0'
+os.environ['CUDA_LAUNCH_BLOCKING'] = '0'
 
 # Enable debug tracing on failure: https://pytorch.org/docs/stable/elastic/errors.html
 @record
@@ -128,6 +132,9 @@ def main(job_config: JobConfig):
         model,
         job_config.model
     )
+    
+    with torch.device("meta"):
+        model = model
     
     # Build the collection of model converters. No-op if `model.converters` empty
     model_converters = build_model_converters(job_config, parallel_dims)
