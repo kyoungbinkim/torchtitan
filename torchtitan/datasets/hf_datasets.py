@@ -30,6 +30,19 @@ def _process_c4_text(sample: dict[str, Any]) -> str:
     return sample["text"]
 
 
+###########################################################
+#                                                         #
+#               Fix custom dataset method                 #
+#                                                         #
+###########################################################
+
+def _load_custom_dataset(dataset_path:str):
+    return load_dataset(dataset_path, split='train')
+
+def _process_custom_text(sample: dict[str, Any]) -> str:
+    return sample["text"]
+
+
 @dataclass
 class DatasetConfig:
     path: str
@@ -48,6 +61,16 @@ DATASETS = {
         path="tests/assets/c4_test",
         loader=lambda path: load_dataset(path, split="train"),
         text_processor=_process_c4_text,
+    ),
+###########################################################
+#                                                         #
+#     Enter the address of the hugging face dataset       #
+#                                                         #
+###########################################################
+    "custom":DatasetConfig(
+        path="",  
+        loader=_load_custom_dataset,
+        text_processor=_process_custom_text
     ),
 }
 
