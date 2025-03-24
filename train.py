@@ -30,6 +30,13 @@ from torchtitan.tools.profiling import (
     maybe_enable_profiling,
 )
 
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+os.environ['LOGLEVEL']='INFO'
+os.environ['FI_PROVIDER']='efa'
+os.environ['NCCL_IB_DISABLE']='1'
+os.environ['PYTHONFAULTHANDLER']='1'
+os.environ['NCCL_SOCKET_IFNAME']='eth0,en,eth,em,bond'
+
 os.environ['NCCL_BUFFSIZE'] = '2097152'
 os.environ['NCCL_DEBUG'] = 'INFO'
 os.environ['FI_EFA_SET_CUDA_SYNC_MEMOPS'] = '0'
@@ -51,6 +58,8 @@ def main(job_config: JobConfig):
 
     device_module, device_type = utils.device_module, utils.device_type
     device = torch.device(f"{device_type}:{int(os.environ['LOCAL_RANK'])}")
+    # device = torch.device('cpu')
+    
     # Device has to be set before creating TorchFT manager.
     device_module.set_device(device)
     ft_manager = init_ft_manager(job_config)
@@ -127,11 +136,13 @@ def main(job_config: JobConfig):
     )
     with torch.device("cpu"):
         model = model_cls.from_model_args(model_config)
-
+    logger.info("build model on cpu")
+    
     model = train_spec.load_pretrained_model(
         model,
         job_config.model
     )
+    logger.info("load pretrained model on cpu")
     
     with torch.device("meta"):
         model = model
