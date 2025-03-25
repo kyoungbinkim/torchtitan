@@ -92,7 +92,8 @@ def pipeline_llama_manual_split(
         is_first: bool = False,
         is_last: bool = False,
     ) -> tuple[PipelineStage, nn.Module]:
-        model = copy.deepcopy(whole_model)
+        # model = copy.deepcopy(whole_model)
+        model = whole_model
         if not is_first:
             model.tok_embeddings = None
 

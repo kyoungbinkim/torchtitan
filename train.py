@@ -200,8 +200,13 @@ def main(job_config: JobConfig):
             model_config,
             train_spec.loss_fn,
         )
+        logger.info(
+            f"model_parts {model_parts}"
+            f"pp_schedule {pp_schedule}"
+            )
+        
         # when PP is enabled, `model` obj is no longer used after this point, model_parts is used instead
-        del model
+        # del model
 
         # For PP with looped schedules, each item in model_parts is one stage-model-chunk.
         # We need to iterate through model_parts to apply SPMD parallelisms, compilation,
