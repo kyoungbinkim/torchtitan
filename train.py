@@ -20,6 +20,9 @@ from torchtitan.components.metrics import (
 from torchtitan.config_manager import JobConfig
 from torchtitan.distributed import ParallelDims, utils as dist_utils
 from torch.distributed.pipelining import PipelineStage
+from torch.distributed.pipelining.schedules import (
+    Schedule1F1B
+)
 
 from torchtitan.protocols.model_converter import build_model_converters
 from torchtitan.protocols.train_spec import get_train_spec
@@ -135,7 +138,7 @@ def main(job_config: JobConfig):
     logger.info(
         f"Building {train_spec.name} {job_config.model.flavor} with {model_config}"
     )
-    with torch.device("cpu"):
+    with torch.device("meta"):
         model = model_cls.from_model_args(model_config) if not parallel_dims.pp_enabled else model_cls.from_model_args(model_config, pp_mesh)
     logger.info("build model on cpu")
     
@@ -188,13 +191,20 @@ def main(job_config: JobConfig):
     if parallel_dims.pp_enabled:
         
         
-        pp_schedule, model_parts, has_first_stage, has_last_stage = PipelineStage(
+        pp_stage, model_parts, has_first_stage, has_last_stage = PipelineStage(
             model,
             pp_mesh.get_local_rank(),
             pp_mesh.size(),
             device,
             group=pp_mesh.get_group("pp"),
         ), [model],  pp_mesh.get_local_rank() == 0, pp_mesh.get_local_rank() == pp_mesh.size()-1
+        
+        
+        pp_schedule = Schedule1F1B(
+            pp_stage,
+            job_config.experimental.pipeline_parallel_degree,
+            train_spec.loss_fn,
+        )
         
         # apply PT-D Pipeline Parallel
         # (
