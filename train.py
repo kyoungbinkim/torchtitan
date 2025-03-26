@@ -19,6 +19,7 @@ from torchtitan.components.metrics import (
 )
 from torchtitan.config_manager import JobConfig
 from torchtitan.distributed import ParallelDims, utils as dist_utils
+from torch.distributed.pipelining import PipelineStage
 
 from torchtitan.protocols.model_converter import build_model_converters
 from torchtitan.protocols.train_spec import get_train_spec
@@ -185,25 +186,35 @@ def main(job_config: JobConfig):
 
     # apply parallelisms and initialization
     if parallel_dims.pp_enabled:
-        # apply PT-D Pipeline Parallel
-        (
-            pp_schedule,
-            model_parts,
-            has_first_stage,
-            has_last_stage,
-        ) = train_spec.pipelining_fn(
+        
+        
+        pp_schedule, model_parts, has_first_stage, has_last_stage = PipelineStage(
             model,
-            pp_mesh,
-            parallel_dims,
-            job_config,
+            pp_mesh.get_local_rank(),
+            pp_mesh.size(),
             device,
-            model_config,
-            train_spec.loss_fn,
-        )
-        logger.info(
-            f"model_parts {model_parts}"
-            f"pp_schedule {pp_schedule}"
-            )
+            group=pp_mesh.get_group("pp"),
+        ), [model],  pp_mesh.get_local_rank() == 0, pp_mesh.get_local_rank() == pp_mesh.size()-1
+        
+        # apply PT-D Pipeline Parallel
+        # (
+        #     pp_schedule,
+        #     model_parts,
+        #     has_first_stage,
+        #     has_last_stage,
+        # ) = train_spec.pipelining_fn(
+        #     model,
+        #     pp_mesh,
+        #     parallel_dims,
+        #     job_config,
+        #     device,
+        #     model_config,
+        #     train_spec.loss_fn,
+        # )
+        # logger.info(
+        #     f"model_parts {model_parts}"
+        #     f"pp_schedule {pp_schedule}"
+        #     )
         
         # when PP is enabled, `model` obj is no longer used after this point, model_parts is used instead
         # del model
