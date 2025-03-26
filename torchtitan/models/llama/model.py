@@ -361,7 +361,7 @@ class Transformer(nn.Module, ModelProtocol):
         
         
         if pp_mesh:
-            self.stage_idx = pp_mesh.pp_mesh.get_local_rank() 
+            self.stage_idx = pp_mesh.get_local_rank() 
             self.num_stages = pp_mesh.size()
             self.is_first = self.stage_idx == 0
             self.is_last = self.stage_idx == self.num_stages - 1
