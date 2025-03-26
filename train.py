@@ -135,7 +135,7 @@ def main(job_config: JobConfig):
         f"Building {train_spec.name} {job_config.model.flavor} with {model_config}"
     )
     with torch.device("cpu"):
-        model = model_cls.from_model_args(model_config)
+        model = model_cls.from_model_args(model_config) if not parallel_dims.pp_enabled else model_cls.from_model_args(model_config, pp_mesh)
     logger.info("build model on cpu")
     
     model = train_spec.load_pretrained_model(

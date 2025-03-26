@@ -16,6 +16,7 @@ from torch import nn
 
 from torchtitan.models.norms import build_norm
 from torchtitan.protocols.train_spec import BaseModelArgs, ModelProtocol
+from torch.distributed import DeviceMesh
 
 
 @dataclass
@@ -352,13 +353,22 @@ class Transformer(nn.Module, ModelProtocol):
 
     """
 
-    def __init__(self, model_args: TransformerModelArgs):
+    def __init__(self, model_args: TransformerModelArgs, pp_mesh:Optional[DeviceMesh]=None):
         super().__init__()
         self.model_args = model_args
         self.vocab_size = model_args.vocab_size
         self.n_layers = model_args.n_layers
+        
+        
+        if pp_mesh:
+            self.stage_idx = pp_mesh.pp_mesh.get_local_rank() 
+            self.num_stages = pp_mesh.size()
+            self.is_first = self.stage_idx == 0
+            self.is_last = self.stage_idx == self.num_stages - 1
+            self.layers_per_worker = self.n_layers / self.num_stages
 
-        self.tok_embeddings = nn.Embedding(model_args.vocab_size, model_args.dim)
+        self.tok_embeddings = nn.Embedding(model_args.vocab_size, model_args.dim) \
+            if pp_mesh == None or (pp_mesh and self.is_first) else None
 
         # TODO persistent should be set to false, since this buffer can be recomputed.
         # however, we set it to true for 2 reasons.  (1) due to pytorch/pytorch#123411,
@@ -370,14 +380,20 @@ class Transformer(nn.Module, ModelProtocol):
         self.register_buffer("freqs_cis", self._precompute_freqs_cis(), persistent=True)
 
         self.layers = torch.nn.ModuleDict()
-        for layer_id in range(model_args.n_layers):
+        
+        start = round(self.stage_idx * self.layers_per_worker) if pp_mesh else 0
+        end = round((self.stage_idx + 1) * self.layers_per_worker) if pp_mesh else self.n_layers
+        
+        for layer_id in range(start, end):
             self.layers[str(layer_id)] = TransformerBlock(layer_id, model_args)
 
         self.norm = build_norm(
             model_args.norm_type, dim=model_args.dim, eps=model_args.norm_eps
-        )
+        ) if pp_mesh == None or (pp_mesh and self.is_last) else None
 
-        self.output = nn.Linear(model_args.dim, model_args.vocab_size, bias=False)
+        self.output = nn.Linear(model_args.dim, model_args.vocab_size, bias=False) \
+            if pp_mesh == None or (pp_mesh and self.is_last) else None
+        
         self.init_weights()
 
     def init_weights(
@@ -448,7 +464,7 @@ class Transformer(nn.Module, ModelProtocol):
         return output
 
     @classmethod
-    def from_model_args(cls, model_args: TransformerModelArgs) -> "Transformer":
+    def from_model_args(cls, model_args: TransformerModelArgs, pp_mesh:Optional[DeviceMesh]=None) -> "Transformer":
         """
         Initialize a Transformer model from a TransformerModelArgs object.
 
@@ -459,4 +475,4 @@ class Transformer(nn.Module, ModelProtocol):
             Transformer: Transformer model.
 
         """
-        return cls(model_args)
+        return cls(model_args, pp_mesh)
