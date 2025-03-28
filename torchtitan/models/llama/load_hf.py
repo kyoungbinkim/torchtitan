@@ -5,6 +5,8 @@ from safetensors import safe_open
 
 import re
 
+global titan_state 
+titan_state = None
 
 HF_FORMAT = {
     "model.embed_tokens.weight": "tok_embeddings.weight",
@@ -95,37 +97,41 @@ def hf_to_titan(
 
 def load_pretrained_llama3(
     model,
-    model_config
+    model_config,
 ):
     if model_config.enable_finetune is False:
         return model
     
     import gc
-    from pathlib import Path
-
-    _model_dir = Path(model_config.model_path)
-    _model_files = model_config.model_files
-    state_dict = {}
-    
-    for model_path in _model_files:
-        with safe_open(Path.joinpath(_model_dir ,model_path), framework="pt", device="cpu") as f:
-                for k in f.keys():
-                    state_dict[k] = f.get_tensor(k)
+    global titan_state 
     
     
-    n_heads = model.model_args.n_heads
-    n_kv_heads = model.model_args.n_kv_heads
-    dim = model.model_args.dim
+    if titan_state == None:
+        from pathlib import Path
+        
+        state_dict = {}
+        _model_dir = Path(model_config.model_path)
+        _model_files = model_config.model_files
+        
+        for model_path in _model_files:
+            with safe_open(Path.joinpath(_model_dir ,model_path), framework="pt", device="cpu") as f:
+                    for k in f.keys():
+                        state_dict[k] = f.get_tensor(k)
     
-    titan_state = hf_to_titan(
-        state_dict,
-        n_heads,
-        n_kv_heads,
-        dim
-    )
     
-    del state_dict
-    gc.collect()
+        n_heads = model.model_args.n_heads
+        n_kv_heads = model.model_args.n_kv_heads
+        dim = model.model_args.dim
+        
+        titan_state = hf_to_titan(
+            state_dict,
+            n_heads,
+            n_kv_heads,
+            dim
+        )
+        
+        del state_dict
+        gc.collect()
     
     model.load_state_dict(titan_state, strict=False)
     

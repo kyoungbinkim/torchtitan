@@ -30,13 +30,7 @@ from torchtitan.tools.profiling import (
     maybe_enable_profiling,
 )
 
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-os.environ['LOGLEVEL']='INFO'
-os.environ['FI_PROVIDER']='efa'
-os.environ['NCCL_IB_DISABLE']='1'
-os.environ['PYTHONFAULTHANDLER']='1'
-os.environ['NCCL_SOCKET_IFNAME']='eth0,en,eth,em,bond'
-
+os.environ['PYTORCH_CUDA_ALLOC_CONF']='expandable_segments:True'
 os.environ['NCCL_BUFFSIZE'] = '2097152'
 os.environ['NCCL_DEBUG'] = 'INFO'
 os.environ['FI_EFA_SET_CUDA_SYNC_MEMOPS'] = '0'
@@ -58,8 +52,6 @@ def main(job_config: JobConfig):
 
     device_module, device_type = utils.device_module, utils.device_type
     device = torch.device(f"{device_type}:{int(os.environ['LOCAL_RANK'])}")
-    # device = torch.device('cpu')
-    
     # Device has to be set before creating TorchFT manager.
     device_module.set_device(device)
     ft_manager = init_ft_manager(job_config)
@@ -134,18 +126,9 @@ def main(job_config: JobConfig):
     logger.info(
         f"Building {train_spec.name} {job_config.model.flavor} with {model_config}"
     )
-    with torch.device("cpu"):
-        model = model_cls.from_model_args(model_config)
-    logger.info("build model on cpu")
-    
-    model = train_spec.load_pretrained_model(
-        model,
-        job_config.model
-    )
-    logger.info("load pretrained model on cpu")
-    
     with torch.device("meta"):
-        model = model
+        model = model_cls.from_model_args(model_config)
+    logger.info("build meta model ")
     
     # Build the collection of model converters. No-op if `model.converters` empty
     model_converters = build_model_converters(job_config, parallel_dims)
@@ -211,7 +194,14 @@ def main(job_config: JobConfig):
             train_spec.parallelize_fn(m, world_mesh, parallel_dims, job_config)
             m.to_empty(device=init_device)
             with torch.no_grad():
-                m.init_weights(buffer_device=buffer_device)
+                if job_config.model.enable_finetune == False:
+                    m.init_weights(buffer_device=buffer_device)
+                else:
+                    train_spec.load_pretrained_model(
+                        m,
+                        job_config.model
+                    )
+                    logger.info("loaded pretrained model on cpu")
             m.train()
 
         # confirm that user will be able to view loss metrics on the console
@@ -220,9 +210,19 @@ def main(job_config: JobConfig):
     else:
         # apply PT-D Tensor Parallel, activation checkpointing, torch.compile, Data Parallel
         train_spec.parallelize_fn(model, world_mesh, parallel_dims, job_config)
-        model.to_empty(device=init_device)
+        # model.to_empty(device=init_device)
+        
+        #  for debug
+        model.to_empty(device=torch.device('cpu'))
         with torch.no_grad():
-            model.init_weights(buffer_device=buffer_device)
+            if job_config.model.enable_finetune == False:
+                model.init_weights(buffer_device=buffer_device)
+            else:
+                train_spec.load_pretrained_model(
+                    model,
+                    job_config.model
+                )
+                logger.info("loaded pretrained model on cpu")
         model.train()
 
         model_parts = [model]
