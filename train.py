@@ -210,10 +210,10 @@ def main(job_config: JobConfig):
     else:
         # apply PT-D Tensor Parallel, activation checkpointing, torch.compile, Data Parallel
         train_spec.parallelize_fn(model, world_mesh, parallel_dims, job_config)
-        # model.to_empty(device=init_device)
+        model.to_empty(device=init_device)
         
         #  for debug
-        model.to_empty(device=torch.device('cpu'))
+        # model.to_empty(device=torch.device('cpu'))
         with torch.no_grad():
             if job_config.model.enable_finetune == False:
                 model.init_weights(buffer_device=buffer_device)
