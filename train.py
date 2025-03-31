@@ -35,6 +35,7 @@ os.environ['FI_PROVIDER']='efa'
 os.environ['NCCL_IB_DISABLE']='1'
 os.environ['PYTHONFAULTHANDLER']='1'
 os.environ['NCCL_SOCKET_IFNAME']='eth0,en,eth,em,bond'
+os.environ['NCCL_SHM_DISABLE'] = '1'
 
 os.environ['PYTORCH_CUDA_ALLOC_CONF']='expandable_segments:True'
 os.environ['NCCL_BUFFSIZE'] = '2097152'
