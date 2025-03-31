@@ -340,9 +340,10 @@ def main(job_config: JobConfig):
                     targets, losses = (labels, []) if has_last_stage else (None, None)
                     if has_first_stage:
                         pp_schedule.step(input_ids, target=targets, losses=losses)
-                    else:
+                    elif has_last_stage:
                         pp_schedule.step(target=targets, losses=losses)
-
+                    else:
+                        pp_schedule.step()
                 # accumulate losses across pipeline microbatches
                 # TODO: PP+FSDP unexpectedly puts the loss back to the CPU
                 loss = (
