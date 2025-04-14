@@ -1,7 +1,11 @@
+import json
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
+from safetensors import safe_open
 
 import torch
-from safetensors import safe_open
+
+from huggingface_hub import hf_hub_download, HfFileSystem
 
 import re
 
@@ -136,3 +140,58 @@ def load_pretrained_llama3(
     model.load_state_dict(titan_state, strict=False)
     
     return model
+
+@dataclass
+class HuggingfaceArgs:
+    repo_id:str = 'meta-llama/Llama-3.1-8B',
+    local_dir: str = 'assets/',
+    tokenizer_path: str = 'original',
+    index_path: str = 'model.safetensors.index.json'
+
+def hf_download(
+    model, 
+    hf_args:HuggingfaceArgs
+) -> None:
+    repo_id = hf_args.repo_id
+    local_dir = hf_args.local_dir
+    tokenizer_path = hf_args.tokenizer_path
+    index_path = hf_args.index_path
+    
+    # 토크나이저 다운로드    
+    tokenizer_path = (
+        f"{tokenizer_path}/tokenizer.model" if tokenizer_path else "tokenizer.model"
+    )
+    hf_hub_download(
+        repo_id=repo_id,
+        filename=tokenizer_path,
+        local_dir=local_dir,
+        local_dir_use_symlinks=False,
+    )
+
+    # 인덱스 파일 다운로드
+    index_path =  index_path or 'model.safetensors.index.json'
+    hf_hub_download(
+        repo_id=repo_id,
+        filename=index_path,
+        local_dir=local_dir,
+        local_dir_use_symlinks=False
+    )
+    
+    with open(local_dir+'/'+index_path, 'r') as model_index_path:
+        model_index = json.load(model_index_path)
+    
+    # 필요한 레이어 셋 생성
+    model_file_path_set = set()
+    for layer_name in model.state_dict().keys():
+        model_file_path_set.add(
+            model_index['weight'][get_mapped_key(layer_name, HF_FORMAT)]
+        )
+
+    # 필요한 레이어 다운로드
+    for model_file_path in model_file_path_set:
+        hf_hub_download(
+            repo_id=repo_id,
+            filename=model_file_path,
+            local_dir=local_dir,
+            local_dir_use_symlinks=False
+        )

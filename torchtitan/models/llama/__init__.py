@@ -15,7 +15,7 @@ from torchtitan.protocols.train_spec import register_train_spec, TrainSpec
 from .model import Transformer, TransformerModelArgs
 from .parallelize_llama import parallelize_llama
 from .pipeline_llama import pipeline_llama
-from .load_hf import load_pretrained_llama3
+from .load_hf import load_pretrained_llama3, hf_download, HuggingfaceArgs
 
 __all__ = [
     "parallelize_llama",
@@ -23,9 +23,25 @@ __all__ = [
     "TransformerModelArgs",
     "Transformer",
     "llama3_configs",
-    "load_pretrained_llama3"
+    "load_pretrained_llama3",
+    "hf_download"
 ]
 
+huggingface_configs = {
+    '8B': HuggingfaceArgs(
+        repo_id='meta-llama/Llama-3.1-8B'
+    ),
+    '8B-Instruct' : HuggingfaceArgs(
+        repo_id='meta-llama/Llama-3.1-8B-Instruct'
+    ),
+    '70B':HuggingfaceArgs(
+        repo_id='meta-llama/Llama-3.1-70B'
+    ),
+    '405B': HuggingfaceArgs(
+        repo_id='meta-llama/Llama-3.1-405B',
+        tokenizer_path='original/mp16/'
+    )
+}
 
 llama3_configs = {
     "debugmodel": TransformerModelArgs(
