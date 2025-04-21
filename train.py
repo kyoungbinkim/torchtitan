@@ -40,7 +40,8 @@ os.environ['PYTORCH_CUDA_ALLOC_CONF']='expandable_segments:True'
 os.environ['NCCL_BUFFSIZE'] = '2097152'
 os.environ['NCCL_DEBUG'] = 'INFO'
 os.environ['FI_EFA_SET_CUDA_SYNC_MEMOPS'] = '0'
-os.environ['CUDA_LAUNCH_BLOCKING'] = '0'
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ['TORCH_USE_CUDA_DSA'] = "1"
 
 # Enable debug tracing on failure: https://pytorch.org/docs/stable/elastic/errors.html
 @record
